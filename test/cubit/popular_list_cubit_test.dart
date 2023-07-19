@@ -1,20 +1,22 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_probe/core/helpers/api_helpers.dart';
 import 'package:media_probe/cubit/popular_list_cubit.dart';
+import 'package:media_probe/models/popular_response.dart';
 import 'package:media_probe/repositories/network_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockApiBaseHelper extends Mock implements ApiBaseHelper {}
+import '../mock/data.dart';
+
+class MockNetworkRepository extends Mock implements NetworkRepository {}
 
 void main() {
-  late MockApiBaseHelper mockApiBaseHelper;
-  late NetworkRepository networkRepository;
+  late MockNetworkRepository mockNetworkRepository;
   late PopularListCubit popularListCubit;
+  final popularResponse = PopularRespone.fromJson(mockData);
 
   setUpAll(() => {
-        mockApiBaseHelper = MockApiBaseHelper(),
-        networkRepository = NetworkRepository(apiBaseHelper: mockApiBaseHelper),
-        popularListCubit = PopularListCubit(networkRepository),
+        mockNetworkRepository = MockNetworkRepository(),
+        popularListCubit = PopularListCubit(mockNetworkRepository),
       });
 
   group('PopularListCubit', () {
@@ -32,19 +34,20 @@ void main() {
               expect(popularListCubit.state.status, PopularListStatus.initial),
             });
 
-    // group('fetch popularList', () {
-    //   blocTest<PopularListCubit, PopularListState>('calls get popular respone',
-    //       build: () {
-    //         when(() => networkRepository.getPopularRespone()).thenAnswer(
-    //             (_) async => PopularRespone.fromJson(Map.from(mockData)));
-    //         return popularListCubit;
-    //       },
-    //       act: (cubit) => cubit.fetchPopularList(),
-    //       expect: () => [
-    //             const PopularListState(status: PopularListStatus.loading),
-    //             const PopularListState(
-    //                 status: PopularListStatus.loaded, popularList: []),
-    //           ]);
-    // });
+    group('fetch popularList', () {
+      blocTest<PopularListCubit, PopularListState>('calls get popular respone',
+          build: () {
+            when(() => mockNetworkRepository.getPopularRespone())
+                .thenAnswer((_) async => popularResponse);
+            return popularListCubit;
+          },
+          act: (cubit) => cubit.fetchPopularList(),
+          expect: () => [
+                const PopularListState(status: PopularListStatus.loading),
+                PopularListState(
+                    status: PopularListStatus.loaded,
+                    popularList: popularResponse.populars!),
+              ]);
+    });
   });
 }
